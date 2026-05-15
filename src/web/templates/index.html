@@ -823,12 +823,17 @@
             <thead>
             <tr>
               <th style="width: 120px;">规则名称</th>
+              <th>日志路径</th>
               <th>正则表达式</th>
               <th style="width: 64px; text-align: right;">操作</th>
             </tr>
             </thead>
             <tbody id="custom-rules-body"></tbody>
           </table>
+          <div class="field-helper" style="margin-top: 8px;">
+            ⚠ Docker 部署如监控自定义路径下的日志文件，需在 docker-compose 中挂载该路径。<br>
+            例如：<code>- /var/log/nginx:/var/log/nginx:ro</code>
+          </div>
         </div>
       </div>
 
@@ -1468,7 +1473,7 @@
 
     const customRulesBody = document.getElementById("custom-rules-body");
 
-    function createCustomRuleRow(name, pattern) {
+    function createCustomRuleRow(name, filePath, pattern) {
       const tr = document.createElement("tr");
 
       const tdName = document.createElement("td");
@@ -1479,11 +1484,19 @@
       nameInput.value = name || "";
       tdName.appendChild(nameInput);
 
+      const tdPath = document.createElement("td");
+      const pathInput = document.createElement("input");
+      pathInput.type = "text";
+      pathInput.className = "channel-url-input";
+      pathInput.placeholder = "例如：/var/log/nginx/error.log（留空则匹配所有文件）";
+      pathInput.value = filePath || "";
+      tdPath.appendChild(pathInput);
+
       const tdPattern = document.createElement("td");
       const patternInput = document.createElement("input");
       patternInput.type = "text";
       patternInput.className = "channel-url-input";
-      patternInput.placeholder = "例如：myapp\\[\\d+\\].*ERROR";
+      patternInput.placeholder = "例如：nginx.*connect\\(\\) failed";
       patternInput.value = pattern || "";
       tdPattern.appendChild(patternInput);
 
@@ -1500,6 +1513,7 @@
       tdOp.appendChild(delBtn);
 
       tr.appendChild(tdName);
+      tr.appendChild(tdPath);
       tr.appendChild(tdPattern);
       tr.appendChild(tdOp);
       customRulesBody.appendChild(tr);
@@ -1625,7 +1639,7 @@
         customRulesBody.innerHTML = "";
         if (data.custom_patterns && data.custom_patterns.length) {
           for (const rule of data.custom_patterns) {
-            createCustomRuleRow(rule.name || "", rule.pattern || "");
+            createCustomRuleRow(rule.name || "", rule.file_path || "", rule.pattern || "");
           }
         }
 
@@ -1692,7 +1706,7 @@
     });
 
     document.getElementById("add-custom-rule-btn").addEventListener("click", () => {
-      createCustomRuleRow("", "");
+      createCustomRuleRow("", "", "");
     });
 
     saveBtn.addEventListener("click", async () => {
@@ -1735,11 +1749,12 @@
       const custom_patterns = [];
       customRulesBody.querySelectorAll("tr").forEach(tr => {
         const inputs = tr.querySelectorAll("input");
-        if (inputs.length < 2) return;
+        if (inputs.length < 3) return;
         const name = inputs[0].value.trim();
-        const pattern = inputs[1].value.trim();
+        const file_path = inputs[1].value.trim();
+        const pattern = inputs[2].value.trim();
         if (!name || !pattern) return;
-        custom_patterns.push({ name, pattern, event_type: "SYSLOG_PATTERN_MATCH" });
+        custom_patterns.push({ name, file_path, pattern, event_type: "SYSLOG_PATTERN_MATCH" });
       });
 
       const payload = {
