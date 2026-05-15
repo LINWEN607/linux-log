@@ -1,0 +1,22 @@
+services:
+  linux-message-bot:
+    build: .
+    container_name: linux-message-bot
+    restart: unless-stopped
+    ports:
+      - 18080:18080
+    volumes:
+      - ./data/logs:/app/data/logs:rw
+      - ./data/cursor:/app/data/cursor:rw
+      - ./config:/app/config:rw
+      # Journald 数据源（data_source=journald 或 both 时必需）
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      # Syslog 文件数据源（data_source=syslog-tail 或 both 时必需）
+      - /var/log/syslog:/var/log/syslog:ro
+      - /var/log/auth.log:/var/log/auth.log:ro
+      - /var/log/kern.log:/var/log/kern.log:ro
+      # Docker 容器事件监控（可选，需勾选 Docker 容器事件）
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Shanghai
